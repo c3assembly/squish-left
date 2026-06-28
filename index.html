@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vertical → 16:9 Static Image (ATEM)</title>
+  <title>Image → 1920×1080 ATEM Frame</title>
   <style>
     :root {
       --bg: #14161a;
@@ -106,14 +106,14 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Vertical → 16:9 Static Image</h1>
-    <p class="sub">Resizes your image to 675×1080 and places it on the left of a 1920×1080 black frame for ATEM. Everything runs in your browser — nothing is uploaded.</p>
+    <h1>Image → 1920×1080 ATEM Frame</h1>
+    <p class="sub">Fits any image into the left 675×1080 region of a 1920×1080 black frame and exports a JPG. Everything runs in your browser — nothing is uploaded.</p>
 
     <div class="panel">
       <div id="drop">
-        <p><strong>Drop a PNG or JPG here</strong></p>
-        <p class="hint">or click to choose a file &middot; ideal input 1344×840 (any 8:5 / 1.6 ratio works)</p>
-        <input id="file" type="file" accept="image/png,image/jpeg" />
+        <p><strong>Drop any image here</strong></p>
+        <p class="hint">or click to choose a file &middot; PNG, JPG, WEBP, etc.</p>
+        <input id="file" type="file" accept="image/*" />
       </div>
       <div id="status" class="status"></div>
     </div>
@@ -121,7 +121,7 @@
     <div id="result" class="panel hidden">
       <div class="preview-head">
         <h2>Output preview (1920×1080)</h2>
-        <button id="download" class="btn" disabled>Download PNG</button>
+        <button id="download" class="btn" disabled>Download JPG</button>
       </div>
       <canvas id="canvas" width="1920" height="1080"></canvas>
     </div>
@@ -129,9 +129,9 @@
     <div class="specs">
       <strong>What it does:</strong>
       <ul>
-        <li>Resizes the source image to <code>675×1080</code>.</li>
-        <li>Composites it onto a <code>1920×1080</code> black canvas, anchored to the left edge.</li>
-        <li>Exports a <code>1920×1080</code> PNG.</li>
+        <li>Stretches any image to exactly <code>675×1080</code>.</li>
+        <li>Places it on the left of a <code>1920×1080</code> black canvas.</li>
+        <li>Exports a <code>1920×1080</code> JPG at 95% quality.</li>
       </ul>
     </div>
 
@@ -144,12 +144,10 @@
     "use strict";
 
     // --- Configuration -----------------------------------------------------
-    const TARGET_W = 675;   // resized source width
-    const TARGET_H = 1080;  // resized source height
+    const TARGET_W = 675;   // left-panel width
+    const TARGET_H = 1080;  // left-panel height
     const OUT_W = 1920;     // output canvas width
     const OUT_H = 1080;     // output canvas height
-    const SRC_RATIO = 1344 / 840; // expected input aspect ratio = 1.6 (8:5)
-    const RATIO_TOLERANCE = 0.01;
 
     // --- Elements ----------------------------------------------------------
     const drop = document.getElementById("drop");
@@ -175,39 +173,25 @@
     function processImage(img, name) {
       currentName = baseName(name);
 
-      // Aspect-ratio check (non-blocking warning).
-      const ratio = img.naturalWidth / img.naturalHeight;
-      const ratioOk = Math.abs(ratio - SRC_RATIO) <= RATIO_TOLERANCE;
-
-      // Black background, then resize the source into the left region.
+      // Stretch the image to exactly TARGET_W×TARGET_H.
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, OUT_W, OUT_H);
-      // High-quality downscale.
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, TARGET_W, TARGET_H);
 
       resultPanel.classList.remove("hidden");
       downloadBtn.disabled = false;
-
-      if (ratioOk) {
-        setStatus(
-          `Done — ${img.naturalWidth}×${img.naturalHeight} resized to ${TARGET_W}×${TARGET_H} on a ${OUT_W}×${OUT_H} frame.`,
-          "ok"
-        );
-      } else {
-        setStatus(
-          `Heads up: input is ${img.naturalWidth}×${img.naturalHeight} (ratio ${ratio.toFixed(3)}), not the expected ${SRC_RATIO.toFixed(3)} (8:5). ` +
-          `Output was still generated but the image is stretched to ${TARGET_W}×${TARGET_H}.`,
-          "warn"
-        );
-      }
+      setStatus(
+        `Done — ${img.naturalWidth}×${img.naturalHeight} stretched to ${TARGET_W}×${TARGET_H} on a ${OUT_W}×${OUT_H} frame.`,
+        "ok"
+      );
     }
 
     function handleFile(file) {
       if (!file) return;
-      if (!/^image\/(png|jpeg)$/.test(file.type)) {
-        setStatus("Please choose a PNG or JPG image.", "warn");
+      if (!file.type.startsWith("image/")) {
+        setStatus("Please choose an image file.", "warn");
         return;
       }
       setStatus("Processing…");
@@ -254,12 +238,12 @@
         if (!blob) return;
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${currentName}-${OUT_W}x${OUT_H}.png`;
+        a.download = `${currentName}-${OUT_W}x${OUT_H}.jpg`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      }, "image/png");
+      }, "image/jpeg", 0.95);
     });
   </script>
 </body>
